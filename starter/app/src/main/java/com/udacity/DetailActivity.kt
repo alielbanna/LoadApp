@@ -1,33 +1,35 @@
 package com.udacity
 
-import android.content.Intent
+import android.app.NotificationManager
 import android.os.Bundle
+import android.widget.Button
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import com.example.loadapp.R
+import androidx.core.content.ContextCompat
 import kotlinx.android.synthetic.main.activity_detail.*
-import kotlinx.android.synthetic.main.content_detail.*
 
 class DetailActivity : AppCompatActivity() {
-    private var fileName = ""
-    private var status = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_detail)
         setSupportActionBar(toolbar)
 
-        okButton.setOnClickListener {
-            returnToMainActivity()
+        val notificationManager = ContextCompat.getSystemService(applicationContext,
+            NotificationManager::class.java)
+        //Cancels the Notification when we press when we start the activity
+        notificationManager?.cancelNotification()
+        // get extras from intent
+        val intent = intent.extras!!
+        val fileName = intent.getString("filename")
+        val status = intent.getString("status")
+        // set extras to text views
+        findViewById<TextView>(R.id.file_name).text = fileName
+        findViewById<TextView>(R.id.status_text).text =status
+        findViewById<Button>(R.id.ok_button).setOnClickListener{
+            //close the activity and remove from stack
+            finish()
         }
-
-        fileName = intent.getStringExtra("fileName").toString()
-        status = intent.getStringExtra("status").toString()
-        file_name.text = fileName
-        status_text.text = status
     }
 
-    private fun returnToMainActivity() {
-        val  mainActivity = Intent(this, MainActivity::class.java)
-        startActivity(mainActivity)
-    }
 }

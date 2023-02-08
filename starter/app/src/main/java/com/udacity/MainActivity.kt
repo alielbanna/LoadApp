@@ -1,8 +1,5 @@
 package com.udacity
 
-import android.animation.Animator
-import android.animation.AnimatorListenerAdapter
-import android.animation.ObjectAnimator
 import android.app.DownloadManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -10,163 +7,152 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.database.Cursor
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.os.Environment
-import android.view.View
 import android.widget.RadioButton
+import android.widget.RadioGroup
 import android.widget.Toast
-import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import com.example.loadapp.R
-import kotlinx.android.synthetic.main.activity_detail.toolbar
-import java.io.File
+import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.content_main.*
+
 
 class MainActivity : AppCompatActivity() {
-
-    private var downloadID: Long = 0
-    private var selectedGitHubRepository: String? = null
-    private var selectedGitHubFileName: String? = null
-    lateinit var loadingButton: LoadingButton
+    private lateinit var downloadManager: DownloadManager
+    private var downloadID: Long = 1
+    private  var url:String? = null
 
     private lateinit var notificationManager: NotificationManager
+    private lateinit var filename : String
 
-    @RequiresApi(Build.VERSION_CODES.N)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         setSupportActionBar(toolbar)
 
-        registerReceiver(receiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
 
-        loadingButton = findViewById(R.id.loading_button)
-        loadingButton.setLoadingButtonState(ButtonState.Completed)
-        loadingButton.setOnClickListener {
-            download()
+
+        notificationManager = ContextCompat.getSystemService(
+            applicationContext,
+            NotificationManager::class.java
+        ) as NotificationManager
+
+        // create channel for our notification
+        createChannel(getString(R.string.download_channel_id),getString(R.string.download_channel_name))
+
+        loading_button.setOnClickListener {
+            if(url != null){
+
+                //here the user pressed on radio button we know that by check url
+                download()
+            }else Toast.makeText(this,"Select a file to Download",Toast.LENGTH_LONG).show()
+
+        }
+        val radioGroup = findViewById<RadioGroup>(R.id.radioGroup)
+        radioGroup.setOnCheckedChangeListener{_,checkedId ->
+            val selectedButton = findViewById<RadioButton>(checkedId)
+            filename = selectedButton.text.toString()
+            when(checkedId){
+                // set url based on the radio button that user pressed
+                R.id.load_app_repository -> {
+                    url = LOAD_APP_URL
+                }
+                R.id.retrofit_http -> url = RETROFIT_URL
+                R.id.glide_image -> url = GLIDE_URL
+            }
+
         }
     }
-
+    // receiver for our download manager
     private val receiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent) {
-            val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
-            val action = intent.action
-
-            if (downloadID == id) {
-                if (action.equals(DownloadManager.ACTION_DOWNLOAD_COMPLETE)) {
-                    val query = DownloadManager.Query()
-                    query.setFilterById(intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, 0))
-                    val manager = context!!.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-                    val cursor: Cursor = manager.query(query)
-                    if (cursor.moveToFirst()) {
-                        if (cursor.count > 0) {
-                            val status = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS))
-                            if (status == DownloadManager.STATUS_SUCCESSFUL) {
-                                loadingButton.setLoadingButtonState(ButtonState.Completed)
-                                notificationManager.sendNotification(selectedGitHubFileName.toString(), applicationContext, "Success")
-                            } else {
-                                loadingButton.setLoadingButtonState(ButtonState.Completed)
-                                notificationManager.sendNotification(selectedGitHubFileName.toString(), applicationContext, "Failed")
-                            }
-                        }
-                    }
-                }
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val id = intent?.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
+            val query = DownloadManager.Query().setFilterById(id!!)
+            val cursor = downloadManager.query(query)
+            cursor.moveToFirst()
+            // here the download finished and we set our button state to completed
+            loading_button.buttonState = ButtonState.Completed
+            // get download manger status
+            val status = when (cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS))) {
+                DownloadManager.STATUS_SUCCESSFUL -> getString(R.string.download_success)
+                else -> getString(R.string.download_failed)
             }
+
+            notificationManager.sendNotification(getString(R.string.message),context!!,filename,status)
+
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.N)
+
     private fun download() {
-        loadingButton.setLoadingButtonState(ButtonState.Clicked)
-
-        if (selectedGitHubRepository != null) {
-            loadingButton.setLoadingButtonState(ButtonState.Loading)
-            notificationManager = ContextCompat.getSystemService(applicationContext, NotificationManager::class.java) as NotificationManager
-            createChannel(getString(R.string.githubRepo_notification_channel_id), getString(R.string.githubRepo_notification_channel_name))
-
-            var file = File(getExternalFilesDir(null), "/repos")
-
-            if (!file.exists()) {
-                file.mkdirs()
-            }
-
-            val request =
-                DownloadManager.Request(Uri.parse(selectedGitHubRepository))
-                    .setTitle(getString(R.string.app_name))
-                    .setDescription(getString(R.string.app_description))
-                    .setRequiresCharging(false)
-                    .setAllowedOverMetered(true)
-                    .setAllowedOverRoaming(true)
-                    .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "/repos/repository.zip")
+        loading_button.buttonState = ButtonState.Loading
+        val request =
+            DownloadManager.Request(Uri.parse(url))
+                .setTitle(getString(R.string.app_name))
+                .setDescription(getString(R.string.app_description))
+                .setRequiresCharging(false)
+                .setAllowedOverMetered(true)
+                .setAllowedOverRoaming(true)
 
 
-            val downloadManager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
-            downloadID =
-                downloadManager.enqueue(request)// enqueue puts the download request in the queue.
-        } else {
-            loadingButton.setLoadingButtonState(ButtonState.Completed)
-            showToast(getString(R.string.noRepotSelectedText))
-        }
+        downloadManager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
+        downloadID =
+            downloadManager.enqueue(request)// enqueue puts the download request in the queue.
     }
 
-    companion object {
-        private const val CHANNEL_ID = "channelId"
-    }
 
-    private fun ObjectAnimator.disableViewDuringAnimation(view: View) {
-        addListener(object : AnimatorListenerAdapter() {
-            override fun onAnimationStart(animation: Animator?) {
-                view.isEnabled = false
-            }
-            override fun onAnimationEnd(animation: Animator?) {
-                view.isEnabled = true
-            }
-        })
-    }
 
-    fun onRadioButtonClicked(view: View) {
-        if (view is RadioButton) {
-            val isChecked = view.isChecked
-            when (view.getId()) {
-                R.id.glide_button ->
-                    if (isChecked) {
-                        selectedGitHubRepository = getString(R.string.glideGithubURL)
-                        selectedGitHubFileName = getString(R.string.glide_text)
-                    }
+    private fun createChannel(channelId: String, channelName: String){
 
-                R.id.load_app_button ->
-                    if (isChecked) {
-                        selectedGitHubRepository = getString(R.string.loadAppGithubURL)
-                        selectedGitHubFileName = getString(R.string.load_app_text)
-                    }
-
-                R.id.retrofit_button -> {
-                    if (isChecked) {
-                        selectedGitHubRepository = getString(R.string.retrofitGithubURL)
-                        selectedGitHubFileName = getString(R.string.retrofit_text)
-                    }
-                }
-            }
-        }
-    }
-
-    private fun showToast(text: String) {
-        val toast = Toast.makeText(this, text, Toast.LENGTH_SHORT)
-        toast.show()
-    }
-
-    private fun createChannel(channelId: String, channelName: String) {
+        //Channels are available from level 26 API and above
+        //We use a channel Check
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val notificationChannel = NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_HIGH)
-            notificationChannel.enableLights(true)
-            notificationChannel.lightColor = Color.RED
-            notificationChannel.enableVibration(true)
-            notificationChannel.description = "Download is done!"
+            val notificationChannel = NotificationChannel(channelId,
+                channelName,
+                //LOW priority makes no sound
+                //DEFAULT makes a sound
+                //HIGH Makes a sound and appears as a heads-up notification
+                NotificationManager.IMPORTANCE_HIGH)
+                //Disable badges for this Channel
+                .apply {
+                    setShowBadge(false)
+                }
 
+            notificationChannel.enableLights(true)
+            notificationChannel.lightColor = Color.BLUE
+            notificationChannel.enableVibration(true)
+            notificationChannel.description = getString(R.string.app_name)
+            //Register the channel with the System. You cannot change the importance
+            // or notification behaviours after this
+            notificationManager = this.getSystemService(
+                NotificationManager::class.java
+            )
             notificationManager.createNotificationChannel(notificationChannel)
         }
     }
+    companion object {
+        private const val LOAD_APP_URL =
+            "https://github.com/udacity/nd940-c3-advanced-android-programming-project-starter/archive/master.zip"
+        private const val GLIDE_URL = "https://github.com/bumptech/glide/archive/master.zip"
+        private const val RETROFIT_URL = "https://github.com/square/retrofit/archive/master.zip"
+
+
+    }
+    override fun onResume() {
+        super.onResume()
+        // START THE RECEIVER
+        registerReceiver(receiver,IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+    }
+
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // WE MUST CLOSE THE RECEIVER THAT PREVENT MEMORY leak
+        unregisterReceiver(receiver)
+
+    }
 }
+

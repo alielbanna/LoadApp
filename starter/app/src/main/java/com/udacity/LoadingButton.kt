@@ -8,7 +8,6 @@ import android.util.AttributeSet
 import android.view.View
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
-import com.example.loadapp.R
 import kotlinx.android.synthetic.main.content_main.view.*
 import kotlin.properties.Delegates
 
@@ -23,7 +22,7 @@ class LoadingButton @JvmOverloads constructor(
     private var valueAnimator = ValueAnimator()
     private val textRect = Rect()
 
-    private var buttonState: ButtonState by Delegates.observable<ButtonState>(ButtonState.Completed) { property, oldValue, newValue ->
+    var buttonState: ButtonState by Delegates.observable<ButtonState>(ButtonState.Completed) { property, oldValue, newValue ->
         when(newValue) {
             ButtonState.Loading -> {
                 setText("We are Downloading")
