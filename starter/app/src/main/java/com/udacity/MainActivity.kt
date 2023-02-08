@@ -19,43 +19,41 @@ import androidx.core.content.ContextCompat
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.content_main.*
 
-
 class MainActivity : AppCompatActivity() {
     private lateinit var downloadManager: DownloadManager
     private var downloadID: Long = 1
-    private  var url:String? = null
-
+    private var url: String? = null
     private lateinit var notificationManager: NotificationManager
-    private lateinit var filename : String
+    private lateinit var filename: String
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         setSupportActionBar(toolbar)
 
-
-
         notificationManager = ContextCompat.getSystemService(
             applicationContext,
             NotificationManager::class.java
         ) as NotificationManager
 
-        // create channel for our notification
-        createChannel(getString(R.string.download_channel_id),getString(R.string.download_channel_name))
+        createChannel(
+            getString(R.string.download_channel_id),
+            getString(R.string.download_channel_name)
+        )
 
         loading_button.setOnClickListener {
-            if(url != null){
+            if (url != null) {
 
                 //here the user pressed on radio button we know that by check url
                 download()
-            }else Toast.makeText(this,"Select a file to Download",Toast.LENGTH_LONG).show()
+            } else Toast.makeText(this, "Select a file to Download", Toast.LENGTH_LONG).show()
 
         }
         val radioGroup = findViewById<RadioGroup>(R.id.radioGroup)
-        radioGroup.setOnCheckedChangeListener{_,checkedId ->
+        radioGroup.setOnCheckedChangeListener { _, checkedId ->
             val selectedButton = findViewById<RadioButton>(checkedId)
             filename = selectedButton.text.toString()
-            when(checkedId){
+            when (checkedId) {
                 // set url based on the radio button that user pressed
                 R.id.load_app_repository -> {
                     url = LOAD_APP_URL
@@ -66,26 +64,38 @@ class MainActivity : AppCompatActivity() {
 
         }
     }
-    // receiver for our download manager
+
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val id = intent?.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
             val query = DownloadManager.Query().setFilterById(id!!)
             val cursor = downloadManager.query(query)
             cursor.moveToFirst()
-            // here the download finished and we set our button state to completed
             loading_button.buttonState = ButtonState.Completed
-            // get download manger status
-            val status = when (cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS))) {
-                DownloadManager.STATUS_SUCCESSFUL -> getString(R.string.download_success)
-                else -> getString(R.string.download_failed)
-            }
+            val status =
+                when (cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS))) {
+                    DownloadManager.STATUS_SUCCESSFUL -> getString(R.string.download_success)
+                    else -> getString(R.string.download_failed)
+                }
 
-            notificationManager.sendNotification(getString(R.string.message),context!!,filename,status)
+            notificationManager.sendNotification(
+                getString(R.string.message),
+                context!!,
+                filename,
+                status
+            )
 
         }
     }
 
+    companion object {
+        private const val LOAD_APP_URL =
+            "https://github.com/udacity/nd940-c3-advanced-android-programming-project-starter/archive/master.zip"
+        private const val GLIDE_URL = "https://github.com/bumptech/glide/archive/master.zip"
+        private const val RETROFIT_URL = "https://github.com/square/retrofit/archive/master.zip"
+
+
+    }
 
     private fun download() {
         loading_button.buttonState = ButtonState.Loading
@@ -100,23 +110,17 @@ class MainActivity : AppCompatActivity() {
 
         downloadManager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
         downloadID =
-            downloadManager.enqueue(request)// enqueue puts the download request in the queue.
+            downloadManager.enqueue(request)
     }
 
+    private fun createChannel(channelId: String, channelName: String) {
 
-
-    private fun createChannel(channelId: String, channelName: String){
-
-        //Channels are available from level 26 API and above
-        //We use a channel Check
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val notificationChannel = NotificationChannel(channelId,
+            val notificationChannel = NotificationChannel(
+                channelId,
                 channelName,
-                //LOW priority makes no sound
-                //DEFAULT makes a sound
-                //HIGH Makes a sound and appears as a heads-up notification
-                NotificationManager.IMPORTANCE_HIGH)
-                //Disable badges for this Channel
+                NotificationManager.IMPORTANCE_HIGH
+            )
                 .apply {
                     setShowBadge(false)
                 }
@@ -125,32 +129,21 @@ class MainActivity : AppCompatActivity() {
             notificationChannel.lightColor = Color.BLUE
             notificationChannel.enableVibration(true)
             notificationChannel.description = getString(R.string.app_name)
-            //Register the channel with the System. You cannot change the importance
-            // or notification behaviours after this
             notificationManager = this.getSystemService(
                 NotificationManager::class.java
             )
             notificationManager.createNotificationChannel(notificationChannel)
         }
     }
-    companion object {
-        private const val LOAD_APP_URL =
-            "https://github.com/udacity/nd940-c3-advanced-android-programming-project-starter/archive/master.zip"
-        private const val GLIDE_URL = "https://github.com/bumptech/glide/archive/master.zip"
-        private const val RETROFIT_URL = "https://github.com/square/retrofit/archive/master.zip"
 
-
-    }
     override fun onResume() {
         super.onResume()
-        // START THE RECEIVER
-        registerReceiver(receiver,IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+        registerReceiver(receiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
     }
 
 
     override fun onDestroy() {
         super.onDestroy()
-        // WE MUST CLOSE THE RECEIVER THAT PREVENT MEMORY leak
         unregisterReceiver(receiver)
 
     }

@@ -44,7 +44,7 @@
             android:layout_height="wrap_content"
             android:layout_margin="4dp"
             android:minHeight="48dp"
-            android:text="@string/load_git_repository"
+            android:text="@string/load_app_text"
             android:textSize="@dimen/default_text_size" />
 
         <RadioButton
@@ -52,7 +52,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="4dp"
-            android:text="@string/retrofit_http_client"
+            android:text="@string/retrofit_text"
             android:textSize="@dimen/default_text_size" />
     </RadioGroup>
 
@@ -62,8 +62,9 @@
         android:layout_width="0dp"
         android:layout_height="60dp"
         android:layout_margin="20dp"
-        app:text="@string/download_text"
-        app:buttonBackgroundColor="@color/colorPrimary"
+        app:textColor="@color/white"
+        app:buttonBackground="@color/colorPrimary"
+        app:animationColor="@color/colorPrimaryDark"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="1.0"

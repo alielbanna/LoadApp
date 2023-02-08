@@ -8,8 +8,14 @@ import android.content.Intent
 import androidx.core.app.NotificationCompat
 
 private val NOTIFICATION_ID = 1
+
 @SuppressLint("UnspecifiedImmutableFlag")
-fun NotificationManager.sendNotification(messageBody: String, applicationContext: Context, fileName: String, status:String) {
+fun NotificationManager.sendNotification(
+    messageBody: String,
+    applicationContext: Context,
+    fileName: String,
+    status: String
+) {
     val detailIntent = Intent(applicationContext, DetailActivity::class.java)
         .putExtra("filename", fileName)
         .putExtra("status", status)
@@ -30,11 +36,15 @@ fun NotificationManager.sendNotification(messageBody: String, applicationContext
         .setContentTitle(applicationContext.getString(R.string.notification_title))
         .setContentText(messageBody)
         .setContentIntent(contentPendingIntent)
-        .addAction(R.drawable.ic_assistant_black_24dp,applicationContext.getString(R.string.notification_action),contentPendingIntent)
+        .addAction(
+            R.drawable.ic_assistant_black_24dp,
+            applicationContext.getString(R.string.notification_action),
+            contentPendingIntent
+        )
         .setAutoCancel(true)
-    notify(NOTIFICATION_ID,builder.build())
+    notify(NOTIFICATION_ID, builder.build())
 }
-// cancel notification extinction fun
-fun NotificationManager.cancelNotification(){
+
+fun NotificationManager.cancelNotification() {
     cancel(NOTIFICATION_ID)
 }
